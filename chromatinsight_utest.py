@@ -1,8 +1,10 @@
 import chromatinsight as ci
+import os
 
 myRegionFile = "./utest/input/regionFile_chrX_selection.bed"
 myInputFolder = "./utest/input"
 myOutputFolder = "./utest/output"
+if not os.path.isdir(myOutputFolder): os.mkdir(myOutputFolder)
 
 # RF_seed = 0 and label_seed = 0 are set to generate a deterministic random behaviour
 resultObserved = ci.testPrediction(prefix = "mono",
