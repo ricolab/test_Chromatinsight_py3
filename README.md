@@ -3,7 +3,7 @@ An application to extract meaningful data from ChIP-seq experiments.
 
 The code in Python represents the core part of the application, which uses the random forest model in the sklearn library (scikit-learn) to detect differential features between two groups of ChIP-seq experiments binarised using ChromHMM.
 
-This software has been tested to detect the human sex dimorphism between two groups (males and females). The output can be further analysed using the R library associated, chromatinsight.tools https://github.com/ricolab/chromatinsight.tools .\
+This software has been tested to detect the human sex dimorphism between two groups (males and females). The output can be further analysed using the R library associated, chromatinsight.tools https://github.com/ricolab/chromatinsight.tools . \
 
 Input:
 * The output text files of ChromHMM (one for each chromosome). At least ten samples in each group are needed to provide enough statistical power.
