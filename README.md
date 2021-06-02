@@ -13,7 +13,7 @@ This software has been tested to detect the human sex dimorphism between two gro
 * A text file with the degree of dimorphism for each genomic region and each trial of the algorithm.
 * A second text file (optional) with the degree of dimorphism of each genomic region after randomising the sample labels (important to display the random behaviour and calculating the FDR).
 
-A **basic unit test** is provided, including twenty files (ten men and ten women). To process it, use the data in ./utest/input and use the code provided in chromatinsight_utest.py .
+A **basic unit test** is provided, which also serves as example of how to run the code; it includes files for twenty samples (ten men and ten women). To process it, use the data in ./utest/input and use the code provided in chromatinsight_utest.py .
 
 **Requirements**:\
 Python 2.7\
