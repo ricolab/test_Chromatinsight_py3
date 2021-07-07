@@ -1,5 +1,5 @@
 ###########################
-### Chromatinsight v2.0 ###
+### Chromatinsight v2.1 ###
 ###########################
 #
 # a set of methods
@@ -308,11 +308,11 @@ def testPrediction(prefix = "", testSize = 0.3, totRandomStates = 11, chrom = ""
 				regionEnd = chromRegion[1] // binSize
 				
 				if verbose: print "Getting patterns in inter-region %s" % regionID
-				if regionStart != regionEnd:
+				if regionStart < regionEnd - 1:
 					if chromRegion[2] == 0: regionEnd = len(myData.iloc[0,:]) # the last bin
 					regionCoordinates = "%s:%s-%s" % (chrom, format(regionStart * binSize, ","), format(regionEnd * binSize, ","))
 					
-					thisData = myData.iloc[:,regionStart:regionEnd-1]
+					thisData = myData.iloc[:,regionStart:regionEnd - 1]
 					thisData.loc[:, "sex"] = sampleLabelList
 					
 					
@@ -331,38 +331,40 @@ def testPrediction(prefix = "", testSize = 0.3, totRandomStates = 11, chrom = ""
 				regionEnd = chromRegion[2] // binSize
 				
 				if verbose: print "Getting patterns in region %s" % regionID
-				if chromRegion[2] == 0: regionEnd = len(myData.iloc[0,:]) # the last bin
-				regionCoordinates = "%s:%s-%s" % (chrom, format(regionStart * binSize, ","), format(regionEnd * binSize, ","))
-				
-				thisData = myData.iloc[:,regionStart:regionEnd-1]
-				thisData.loc[:, "sex"] = sampleLabelList
-				
-				myScores = []
-				for randomState in range(totRandomStates):
-					myScore = getScore(thisData, testSize, randomState, RF_seed)
-					myScores.append(myScore)
-				
-				myScoreChrom.append([regionID] + myScores)
-				
-				print ("TAD %s: %s, median = %f" % (regionCoordinates, myScores, sorted(myScores)[medianPos]))
+				if regionStart < regionEnd - 1:
+					if chromRegion[2] == 0: regionEnd = len(myData.iloc[0,:]) # the last bin
+					regionCoordinates = "%s:%s-%s" % (chrom, format(regionStart * binSize, ","), format(regionEnd * binSize, ","))
+					
+					thisData = myData.iloc[:,regionStart:regionEnd - 1]
+					thisData.loc[:, "sex"] = sampleLabelList
+					
+					myScores = []
+					for randomState in range(totRandomStates):
+						myScore = getScore(thisData, testSize, randomState, RF_seed)
+						myScores.append(myScore)
+					
+					myScoreChrom.append([regionID] + myScores)
+					
+					print ("TAD %s: %s, median = %f" % (regionCoordinates, myScores, sorted(myScores)[medianPos]))
 				previousRegionEnd = chromRegion[2]
 				
 		# check the last part of the chromosome
 		regionStart = previousRegionEnd // binSize
 		regionEnd = len(myData.iloc[0,:]) # the last bin
 		regionID = "%s_%i-%i_Ending" % (chrom, previousRegionEnd, regionEnd * binSize)
-		regionCoordinates = "%s:%s-%s" % (chrom, format(regionStart * binSize, ","), format(regionEnd * binSize, ","))
-		
-		thisData = myData.iloc[:,regionStart:regionEnd - 1]
-		thisData.loc[:, "sex"] = sampleLabelList
-		
-		myScores = []
-		for randomState in range(totRandomStates):
-			myScore = getScore(thisData, testSize, randomState, RF_seed)
-			myScores.append(myScore)
-		
-		myScoreChrom.append([regionID] + myScores)
-		print ("Ending %s: %s, median = %f" % (regionCoordinates, myScores, sorted(myScores)[medianPos]))
+		if regionStart < regionEnd - 1:
+			regionCoordinates = "%s:%s-%s" % (chrom, format(regionStart * binSize, ","), format(regionEnd * binSize, ","))
+			
+			thisData = myData.iloc[:,regionStart:regionEnd - 1]
+			thisData.loc[:, "sex"] = sampleLabelList
+			
+			myScores = []
+			for randomState in range(totRandomStates):
+				myScore = getScore(thisData, testSize, randomState, RF_seed)
+				myScores.append(myScore)
+			
+			myScoreChrom.append([regionID] + myScores)
+			print ("Ending %s: %s, median = %f" % (regionCoordinates, myScores, sorted(myScores)[medianPos]))
 		
 		myScoreList.append(myScoreChrom)
 		
