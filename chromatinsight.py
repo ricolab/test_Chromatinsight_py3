@@ -1,5 +1,5 @@
 ###########################
-### Chromatinsight v2.1 ###
+### Chromatinsight v2.2 ###
 ###########################
 #
 # a set of methods
@@ -246,11 +246,26 @@ def joinData(pattern = "", histmod = "ac", direc = "", verbose = False, removePA
 	
 #------------------------------------------------------
 
-def testPrediction(prefix = "", testSize = 0.3, totRandomStates = 11, chrom = "", histmod = "ac", verbose = False, regionFile = "", binSize = 200, inputFolder = "", outputFolder = "", output = "output.txt", randomize = False, randomizeMethod = "scramble", label_seed = None, RF_seed = None):
+def testPrediction(prefix = "",
+					testSize = 0.3,
+					totRandomStates = 11,
+					chrom = "",
+					histmod = "ac",
+					verbose = False,
+					regionFile = "",
+					interRegionTested = True,
+					binSize = 200,
+					inputFolder = "",
+					outputFolder = "",
+					output = "output.txt",
+					randomize = False,
+					randomizeMethod = "scramble",
+					label_seed = None,
+					RF_seed = None):
 
 # randomizeMethod can be
 # coin -> 50% chance of getting "fem" or "mal"
-# scramble -> just use the same sexes, and scramble them
+# scramble -> just scramble the existing labels (preserving their ratios)
 
 	outputFile = os.path.join(outputFolder, output)
 	
@@ -307,8 +322,8 @@ def testPrediction(prefix = "", testSize = 0.3, totRandomStates = 11, chrom = ""
 				regionStart = previousRegionEnd // binSize
 				regionEnd = chromRegion[1] // binSize
 				
-				if verbose: print "Getting patterns in inter-region %s" % regionID
-				if regionStart < regionEnd - 1:
+				if regionStart < regionEnd - 1 and interRegionTested:
+					if verbose: print "Getting patterns in inter-region %s" % regionID
 					if chromRegion[2] == 0: regionEnd = len(myData.iloc[0,:]) # the last bin
 					regionCoordinates = "%s:%s-%s" % (chrom, format(regionStart * binSize, ","), format(regionEnd * binSize, ","))
 					
@@ -330,8 +345,8 @@ def testPrediction(prefix = "", testSize = 0.3, totRandomStates = 11, chrom = ""
 				regionStart = chromRegion[1] // binSize
 				regionEnd = chromRegion[2] // binSize
 				
-				if verbose: print "Getting patterns in region %s" % regionID
 				if regionStart < regionEnd - 1:
+					if verbose: print "Getting patterns in region %s" % regionID
 					if chromRegion[2] == 0: regionEnd = len(myData.iloc[0,:]) # the last bin
 					regionCoordinates = "%s:%s-%s" % (chrom, format(regionStart * binSize, ","), format(regionEnd * binSize, ","))
 					
@@ -351,8 +366,8 @@ def testPrediction(prefix = "", testSize = 0.3, totRandomStates = 11, chrom = ""
 		# check the last part of the chromosome
 		regionStart = previousRegionEnd // binSize
 		regionEnd = len(myData.iloc[0,:]) # the last bin
-		regionID = "%s_%i-%i_Ending" % (chrom, previousRegionEnd, regionEnd * binSize)
-		if regionStart < regionEnd - 1:
+		if regionStart < regionEnd - 1 and interRegionTested:
+			regionID = "%s_%i-%i_Ending" % (chrom, previousRegionEnd, regionEnd * binSize)
 			regionCoordinates = "%s:%s-%s" % (chrom, format(regionStart * binSize, ","), format(regionEnd * binSize, ","))
 			
 			thisData = myData.iloc[:,regionStart:regionEnd - 1]
