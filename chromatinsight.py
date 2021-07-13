@@ -1,5 +1,5 @@
 ###########################
-### Chromatinsight v2.2 ###
+### Chromatinsight v2.3 ###
 ###########################
 #
 # a set of methods
@@ -206,7 +206,7 @@ def joinData(pattern = "", histmod = "ac", direc = "", verbose = False, removePA
 		badFile = False
 		if verbose: print myFile
 		reader = open(myFile, "r")
-		myFileContents = [myFile]
+		myFileContents = [os.path.bathname(myFile)]
 		skipThis = True
 		counter = 0
 		while True:
