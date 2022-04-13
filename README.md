@@ -1,5 +1,5 @@
 # Chromatinsight
-An application to extract meaningful data from ChIP-seq experiments.
+An application to extract meaningful information from datasets of ChIP-seq experiments.
 
 The code in Python represents the core part of the application, which uses the random forest model in the sklearn library (scikit-learn) to detect differential features between two groups of ChIP-seq experiments binarised using ChromHMM.
 
