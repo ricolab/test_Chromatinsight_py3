@@ -1,5 +1,5 @@
 ###########################
-### Chromatinsight v3.0 ###
+### Chromatinsight v3.1 ###
 ###########################
 #
 # a set of methods
@@ -183,13 +183,8 @@ def mergeRegionFiles(regionFileFolder = "", minDistance = 1000, regionFileId = "
 
 #------------------------------------------------------
 
-def joinData(fileList = [], histmod = "ac", verbose = False, removePAR = False, removeXist = False):
+def joinData(fileList = [], histmod = "ac", verbose = False):
 
-	PAR1chrXend = 13497 # this included, is in the PAR#1, one-based
-	PAR2chrXstart = 774653
-	XistStart = 365300 # 73,060,000 b
-	XistEnd = 365400 # 73,080,000 b
-	
 	if histmod == "ac" or histmod == "H3K27ac":
 		histmodPos = 0
 		histmod = "H3K27ac"
@@ -223,9 +218,7 @@ def joinData(fileList = [], histmod = "ac", verbose = False, removePAR = False, 
 					else:
 						badFile = True
 						break
-				if (counter > 2) \
-					and ((not removePAR) or (counter > PAR1chrXend + 2 and counter < PAR2chrXstart + 2)) \
-					and ((not removeXist) or (counter < XistStart + 2) or (counter > XistEnd + 2)):
+				if (counter > 2):
 					myValue = int(myLine[histmodPos])
 					if myValue == 2:
 						badFile = True
@@ -272,10 +265,10 @@ def testPrediction(groupingFile = "",
 	if len(chrom) == 0:
 		chromList = ["chr" + str(chrom) for chrom in range(23)[1:]]
 		chromList.append("chrX")
-		chromList.append("chrXnoPAR")
-		chromList.append("chrXnoPARnoXist")
 	else: chromList = [chrom]
 	medianPos = totRandomStates // 2 # only for odd values
+	
+	if len(chromList) == 1: outputFile = outputFile.replace("*", chromList[0])
 	
 	regionList = []
 	if(len(regionFile) > 0):
@@ -287,6 +280,7 @@ def testPrediction(groupingFile = "",
 	
 	if(len(groupingFile) == 0):
 		print "A grouping file indicating the path to the files and a group identifier is needed."
+		print "If an asterisk (*) is included in the filename, it will be replaced by the chromosome."
 		print "Example (there are two tab-separated columns, and no header):"
 		print "file_1.txt\tgroupA"
 		print "file_2.txt\tgroupA"
@@ -312,23 +306,11 @@ def testPrediction(groupingFile = "",
 		return
 	
 	myScoreList = []
-	for chrom in chromList:
-		thisChrom = chrom
+	for singleChrom in chromList:
 		thisChromSampleLabelList = sampleLabelList
-		removePAR = False
-		removeXist = False
-		
-		if chrom == "chrXnoPAR":
-			thisChrom = "chrX"
-			removePAR = True
-		
-		if chrom == "chrXnoPARnoXist":
-			thisChrom = "chrX"
-			removePAR = True
-			removeXist = True
 			
-		# to-do: make this work for all chromosomes
-		myData, badFileIndices = joinData(fileList, histmod = histmod, verbose = verbose, removePAR = removePAR, removeXist = removeXist)
+		fileList_chromReplaced = [singleFile.replace("*", singleChrom) for singleFile in fileList]
+		myData, badFileIndices = joinData(fileList_chromReplaced, histmod = histmod, verbose = verbose)
 		for i in badFileIndices[::-1]:
 			del thisChromSampleLabelList[i]
 		if verbose: print "Data joined."
@@ -347,17 +329,17 @@ def testPrediction(groupingFile = "",
 		interTADLabel = "Starting"
 		for chromRegion in regionList:
 			thisChrom = "chr" + chromRegion[0]
-			if thisChrom == chrom:
+			if thisChrom == singleChrom:
 				
 				# we check the interTAD region
-				regionID = "%s_%i-%i_%s" % (chrom, previousRegionEnd, chromRegion[1], interTADLabel)
+				regionID = "%s_%i-%i_%s" % (singleChrom, previousRegionEnd, chromRegion[1], interTADLabel)
 				regionStart = previousRegionEnd // binSize
 				regionEnd = chromRegion[1] // binSize
 				
 				if regionStart < regionEnd - 1 and interRegionTested:
 					if verbose: print "Getting patterns in inter-region %s" % regionID
 					if chromRegion[2] == 0: regionEnd = len(myData.iloc[0,:]) # the last bin
-					regionCoordinates = "%s:%s-%s" % (chrom, format(regionStart * binSize, ","), format(regionEnd * binSize, ","))
+					regionCoordinates = "%s:%s-%s" % (singleChrom, format(regionStart * binSize, ","), format(regionEnd * binSize, ","))
 					
 					thisData = myData.iloc[:,regionStart:regionEnd - 1]
 					thisData.loc[:, "group"] = thisChromSampleLabelList
@@ -372,14 +354,14 @@ def testPrediction(groupingFile = "",
 					interTADLabel = "interTAD"
 				
 				# we check the TAD region
-				regionID = "%s_%i-%i_TAD" % (chrom, chromRegion[1], chromRegion[2])
+				regionID = "%s_%i-%i_TAD" % (singleChrom, chromRegion[1], chromRegion[2])
 				regionStart = chromRegion[1] // binSize
 				regionEnd = chromRegion[2] // binSize
 				
 				if regionStart < regionEnd - 1:
 					if verbose: print "Getting patterns in region %s" % regionID
 					if chromRegion[2] == 0: regionEnd = len(myData.iloc[0,:]) # the last bin
-					regionCoordinates = "%s:%s-%s" % (chrom, format(regionStart * binSize, ","), format(regionEnd * binSize, ","))
+					regionCoordinates = "%s:%s-%s" % (singleChrom, format(regionStart * binSize, ","), format(regionEnd * binSize, ","))
 					
 					thisData = myData.iloc[:,regionStart:regionEnd - 1]
 					thisData.loc[:, "group"] = thisChromSampleLabelList
@@ -398,8 +380,8 @@ def testPrediction(groupingFile = "",
 		regionStart = previousRegionEnd // binSize
 		regionEnd = len(myData.iloc[0,:]) # the last bin
 		if regionStart < regionEnd - 1 and interRegionTested:
-			regionID = "%s_%i-%i_Ending" % (chrom, previousRegionEnd, regionEnd * binSize)
-			regionCoordinates = "%s:%s-%s" % (chrom, format(regionStart * binSize, ","), format(regionEnd * binSize, ","))
+			regionID = "%s_%i-%i_Ending" % (singleChrom, previousRegionEnd, regionEnd * binSize)
+			regionCoordinates = "%s:%s-%s" % (singleChrom, format(regionStart * binSize, ","), format(regionEnd * binSize, ","))
 			
 			thisData = myData.iloc[:,regionStart:regionEnd - 1]
 			thisData.loc[:, "group"] = thisChromSampleLabelList
@@ -414,8 +396,9 @@ def testPrediction(groupingFile = "",
 		
 		myScoreList.append(myScoreChrom)
 		
-	if verbose: print "Saving results in file %s" % outputFile
+	# if verbose: print "Saving results in file %s" % outputFile
 	saveFile(outputFile, myScoreList[0], header = "chrom_init-end_region")
+	print "Relusts saved in file %s" % outputFile
 		
 	return myScoreList
 
