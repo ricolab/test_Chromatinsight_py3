@@ -1,5 +1,5 @@
 ###########################
-### Chromatinsight v2.4 ###
+### Chromatinsight v3.0 ###
 ###########################
 #
 # a set of methods
@@ -183,7 +183,7 @@ def mergeRegionFiles(regionFileFolder = "", minDistance = 1000, regionFileId = "
 
 #------------------------------------------------------
 
-def joinData(pattern = "", histmod = "ac", direc = "", verbose = False, removePAR = False, removeXist = False):
+def joinData(fileList = [], histmod = "ac", verbose = False, removePAR = False, removeXist = False):
 
 	PAR1chrXend = 13497 # this included, is in the PAR#1, one-based
 	PAR2chrXstart = 774653
@@ -197,16 +197,16 @@ def joinData(pattern = "", histmod = "ac", direc = "", verbose = False, removePA
 		histmodPos = 1
 		histmod = "H3K4me1"
 
-	myDirec = direc
-	myFilePath = os.path.join(myDirec, "*" + pattern + "*binary.txt")
-	myFiles = glob.glob(myFilePath)
+	myFiles = fileList
 	myList = []
 	if verbose: print "Loading files..."
-	for myFile in myFiles:
+	badFileIndices = []
+	for i in range(len(myFiles)):
+		myFile = myFiles[i]
 		badFile = False
 		if verbose: print myFile
 		reader = open(myFile, "r")
-		myFileContents = [os.path.basename(myFile)]
+		myFileContents = [myFile]
 		skipThis = True
 		counter = 0
 		while True:
@@ -236,26 +236,26 @@ def joinData(pattern = "", histmod = "ac", direc = "", verbose = False, removePA
 		if not badFile: myList.append(myFileContents)
 		else:
 			if verbose: print "Warning: %s is a bad file, skipping." % myFile
+			badFileIndices.append(i)
 	
 	if verbose: print "Generating main data frame..."
 	myListP = pandas.DataFrame(myList)
 	if verbose: print "Main data frame generated..."
 	myListPi = myListP.set_index(0)
 	
-	return myListPi
+	return myListPi, badFileIndices
 	
 #------------------------------------------------------
 
-def testPrediction(prefix = "",
+def testPrediction(groupingFile = "",
+					regionFile = "",
 					testSize = 0.3,
 					totRandomStates = 11,
 					chrom = "",
 					histmod = "ac",
 					verbose = False,
-					regionFile = "",
 					interRegionTested = True,
 					binSize = 200,
-					inputFolder = "",
 					outputFolder = "",
 					output = "output.txt",
 					randomize = False,
@@ -264,7 +264,7 @@ def testPrediction(prefix = "",
 					RF_seed = None):
 
 # randomizeMethod can be
-# coin -> 50% chance of getting "fem" or "mal"
+# coin -> 50% chance of getting either label
 # scramble -> just scramble the existing labels (preserving their ratios)
 
 	outputFile = os.path.join(outputFolder, output)
@@ -285,9 +285,36 @@ def testPrediction(prefix = "",
 		# regionList = [["0", 0, 0, 0.0]]
 		regionList = [["0", 0, 0]]
 	
+	if(len(groupingFile) == 0):
+		print "A grouping file indicating the path to the files and a group identifier is needed."
+		print "Example (there are two tab-separated columns, and no header):"
+		print "file_1.txt\tgroupA"
+		print "file_2.txt\tgroupA"
+		print "..."
+		print "file_3.txt\tgroupB"
+		print "file_4.txt\tgroupB"
+		print "..."
+		return
+	
+	groupingList = stringList2inputDataFile(load2stringList(groupingFile), format = ["s", "s"])
+	fileList  = [element[0] for element in groupingList]
+	sampleLabelList = [element[1] for element in groupingList]
+	sampleLabelSet = list(set(sampleLabelList))
+	
+	if len(sampleLabelSet) != 2:
+		print "Chromatinsight works with two groups of samples,"
+		print "so the number of unique labels must be exactly 2."
+		print "In the grouping file there are %i" % len(sampleLabelSet)
+		print "Namely:"
+		print sampleLabelSet
+		print
+		print "Please fix."
+		return
+	
 	myScoreList = []
 	for chrom in chromList:
 		thisChrom = chrom
+		thisChromSampleLabelList = sampleLabelList
 		removePAR = False
 		removeXist = False
 		
@@ -300,15 +327,20 @@ def testPrediction(prefix = "",
 			removePAR = True
 			removeXist = True
 			
-		myData = joinData(pattern = prefix + "*_" + thisChrom + "_", histmod = histmod, verbose = verbose, removePAR = removePAR, removeXist = removeXist, direc = inputFolder)
+		# to-do: make this work for all chromosomes
+		myData, badFileIndices = joinData(fileList, histmod = histmod, verbose = verbose, removePAR = removePAR, removeXist = removeXist)
+		for i in badFileIndices[::-1]:
+			del thisChromSampleLabelList[i]
 		if verbose: print "Data joined."
+
+		# remove
+		#return myData, thisChromSampleLabelList, badFileIndices
 		
-		sampleLabelList = [myData.index.str.split("_")[i][2] for i in range(len(myData))]
 		if randomize:
 			if verbose: print "Randomising labels, as requested..."
 			random.seed(label_seed)
-			if randomizeMethod == "coin": sampleLabelList = [["fem", "mal"][random.randint(0,1)] for i in range(len(myData))]
-			if randomizeMethod == "scramble": random.shuffle(sampleLabelList)
+			if randomizeMethod == "coin": thisChromSampleLabelList = [sampleLabelSet[random.randint(0,1)] for i in range(len(myData))]
+			if randomizeMethod == "scramble": random.shuffle(thisChromSampleLabelList)
 						
 		myScoreChrom = []
 		previousRegionEnd = 0
@@ -328,8 +360,7 @@ def testPrediction(prefix = "",
 					regionCoordinates = "%s:%s-%s" % (chrom, format(regionStart * binSize, ","), format(regionEnd * binSize, ","))
 					
 					thisData = myData.iloc[:,regionStart:regionEnd - 1]
-					thisData.loc[:, "sex"] = sampleLabelList
-					
+					thisData.loc[:, "group"] = thisChromSampleLabelList
 					
 					myScores = []
 					for randomState in range(totRandomStates):
@@ -351,7 +382,7 @@ def testPrediction(prefix = "",
 					regionCoordinates = "%s:%s-%s" % (chrom, format(regionStart * binSize, ","), format(regionEnd * binSize, ","))
 					
 					thisData = myData.iloc[:,regionStart:regionEnd - 1]
-					thisData.loc[:, "sex"] = sampleLabelList
+					thisData.loc[:, "group"] = thisChromSampleLabelList
 					
 					myScores = []
 					for randomState in range(totRandomStates):
@@ -371,7 +402,7 @@ def testPrediction(prefix = "",
 			regionCoordinates = "%s:%s-%s" % (chrom, format(regionStart * binSize, ","), format(regionEnd * binSize, ","))
 			
 			thisData = myData.iloc[:,regionStart:regionEnd - 1]
-			thisData.loc[:, "sex"] = sampleLabelList
+			thisData.loc[:, "group"] = thisChromSampleLabelList
 			
 			myScores = []
 			for randomState in range(totRandomStates):
@@ -391,16 +422,16 @@ def testPrediction(prefix = "",
 #------------------------------------------------------
 
 def getScore(myData, testSize, randomState = None, RF_seed = None):
-	train_index, test_index = next(StratifiedShuffleSplit(test_size = testSize, random_state=randomState).split(myData, myData.sex))
-	# myData.sex.value_counts().plot.bar(x="sex")
+	train_index, test_index = next(StratifiedShuffleSplit(test_size = testSize, random_state=randomState).split(myData, myData.group))
+	# myData.group.value_counts().plot.bar(x="group")
 	myData_train = myData.iloc[train_index,:]
 	myData_test = myData.iloc[test_index,:]
 	myData_train
 	
 	rf = RandomForestClassifier(n_estimators = 200, random_state = RF_seed)
 	myDataLength = myData.shape[1] - 1
-	myFit = rf.fit(myData_train.iloc[:,0:myDataLength], myData_train.loc[:,"sex"])
-	myScore = rf.score(myData_test.iloc[:,0:myDataLength], myData_test.loc[:,"sex"])
+	myFit = rf.fit(myData_train.iloc[:,0:myDataLength], myData_train.loc[:,"group"])
+	myScore = rf.score(myData_test.iloc[:,0:myDataLength], myData_test.loc[:,"group"])
 	
 	return myScore
 
