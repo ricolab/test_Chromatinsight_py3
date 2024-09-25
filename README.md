@@ -21,4 +21,4 @@ pandas installed, see https://pandas.pydata.org/pandas-docs/stable/getting_start
 sklearn installed, see https://scikit-learn.org/stable/install.html \
 Quick way to install both:\
 pip install pandas\
-pip install sklearn
+pip install scikit-learn
