@@ -16,7 +16,7 @@ This software has been tested to detect the human sex dimorphism between two gro
 A **basic unit test** is provided, which also serves as example of how to run the code; it includes files for twenty samples (ten men and ten women). To process it, use the data in ./utest/input and use the code provided in chromatinsight_utest.py .
 
 **Requirements**:\
-Python 2.7\
+Python 3.x\
 pandas installed, see https://pandas.pydata.org/pandas-docs/stable/getting_started/install.html \
 sklearn installed, see https://scikit-learn.org/stable/install.html \
 Quick way to install both:\
