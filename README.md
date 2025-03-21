@@ -1,4 +1,4 @@
-# Chromatinsight
+# Chromatinsight (test version). Go to https://github.com/ricolab/Chromatinsight_py3 for the stable release.
 An application to extract meaningful information from datasets of ChIP-seq experiments.
 
 The code in Python represents the core part of the application, which uses the random forest model in the sklearn library (scikit-learn) to detect differential features between two groups of ChIP-seq experiments binarised using ChromHMM.
